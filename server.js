@@ -134,6 +134,9 @@ app.get('/formattedAttendance', async (req, res) => {
 
 app.post('/updateAttendance', async (req, res) => {
   const { employeeId, date, status, color, checkInTime, checkOutTime } = req.body;
+
+  // Log the request body to check the values being received
+  console.log('Request Body:', req.body);
   
   try {
     const query = `
