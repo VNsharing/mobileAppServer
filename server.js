@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { client, connectDB } = require('./db');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +14,7 @@ app.use(cors()); // Enable CORS if needed
 connectDB();
 
 // Define API routes
-app.get('/dailycheck', async (req, res) => {
+app.get('/dailyChecker', async (req, res) => {
   try {
     const query = `
       SELECT e.id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
@@ -22,7 +23,28 @@ app.get('/dailycheck', async (req, res) => {
       ORDER BY e.id, a.date
     `;
     const result = await client.query(query);
-    
+
+    // Process the results to format them as required
+    const formattedData = result.rows.reduce((acc, row) => {
+      const { employee_id, name, attendance_date, attendance_status } = row;
+
+      // Find or create the employee entry
+      let employee = acc.find(e => e.idemployee === employee_id);
+      if (!employee) {
+        employee = { idemployee: employee_id, name, attendance: [] };
+        acc.push(employee);
+      }
+
+      // Add the attendance record if it exists
+      if (attendance_date && attendance_status) {
+        employee.attendance.push({ status: attendance_status, datetime: attendance_date });
+      }
+
+      return acc;
+    }, []);
+
+    res.json(formattedData);
+
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -63,16 +85,23 @@ app.get('/employeeTab', async (req, res) => {
 });
 
 
-app.get('/scheduleScreen', async (req, res) => {
+app.patch('/updatePassword', async (req, res) => {
+  const { employeeId, newPassword } = req.body;
+
+  if (!employeeId || !newPassword) {
+    return res.status(400).json({ error: 'employeeId and newPassword are required' });
+  }
+
   try {
-    const query = `
-      SELECT e.id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
-      FROM employees e
-      LEFT JOIN attendance a ON e.id = a.employee_id
-      ORDER BY e.id, a.date
-    `;
-    const result = await client.query(query);
-    
+    const query = 'UPDATE employee SET password = $1 WHERE id = $2 RETURNING *';
+    const values = [newPassword, employeeId];
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -133,20 +162,20 @@ app.get('/formattedAttendance', async (req, res) => {
 
 
 app.post('/updateAttendance', async (req, res) => {
-  const { employeeId, date, status, color, checkInTime, checkOutTime } = req.body;
+  const { employeeId, date, status, color} = req.body;
 
   // Log the request body to check the values being received
   console.log('Request Body:', req.body);
   
   try {
     const query = `
-      INSERT INTO attendance (employee_id, date, status, color, check_in_time, check_out_time)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO attendance (employee_id, date, status, color)
+      VALUES ($1, $2, $3, $4)
       ON CONFLICT (employee_id, date)
-      DO UPDATE SET status = EXCLUDED.status, color = EXCLUDED.color, check_in_time = EXCLUDED.check_in_time, check_out_time = EXCLUDED.check_out_time
+      DO UPDATE SET status = EXCLUDED.status, color = EXCLUDED.color
       RETURNING *;
     `;
-    const values = [employeeId, date, status, color, checkInTime, checkOutTime];
+    const values = [employeeId, date, status, color];
     const result = await client.query(query, values);
     
     res.status(200).json(result.rows[0]);
@@ -154,6 +183,180 @@ app.post('/updateAttendance', async (req, res) => {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const query = 'SELECT * FROM employee WHERE email = $1 AND password = $2';
+    const values = [email, password];
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Assuming you have some user data to return on successful login
+    res.status(200).json({ message: 'Login successful', user: result.rows[0] });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.patch('/banEmployee', async (req, res) => {
+  const employeeId = req.body;
+
+  try {
+    const query = 'UPDATE employee SET status = $1 WHERE id = $2 RETURNING *';
+    const values = ['Banned', employeeId];
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json({ message: 'Employee status updated to Banned', employee: result.rows[0] });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.patch('/unbanEmployee', async (req, res) => {
+  const employeeId = req.body;
+
+  try {
+    const query = 'UPDATE employee SET status = $1 WHERE id = $2 RETURNING *';
+    const values = ['Active', employeeId];
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json({ message: 'Employee status updated to Active', employee: result.rows[0] });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.delete('/deleteEmployee', async (req, res) => {
+  const employeeId = req.body;
+
+  try {
+    const query = 'DELETE FROM employee WHERE id = $1 RETURNING *';
+    const values = [employeeId];
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json({ message: 'Employee deleted successfully', deletedEmployee: result.rows[0] });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/addEmployee', async (req, res) => {
+  const { name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
+
+  try {
+
+    // Insert new employee
+    const insertEmployeeQuery = `
+      INSERT INTO employees (name, phone, email, password, cmnd, birth_date, address, role, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'employee', 'active')
+      RETURNING id;
+    `;
+    const employeeValues = [name, phone, email, password, idNumber, dob, address];
+    const employeeResult = await client.query(insertEmployeeQuery, employeeValues);
+    
+    const employeeId = employeeResult.rows[0].id;
+    
+    // Insert salary for the new employee
+    const insertSalaryQuery = `
+      INSERT INTO salaries (employee_id, type, salaries)
+      VALUES ($1, $2, $3);
+    `;
+    const salaryValues = [employeeId, paymentType, amount];
+    await client.query(insertSalaryQuery, salaryValues);
+   
+    res.status(201).json({ message: 'Employee and salary added successfully', employeeId });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+
+app.patch('/editEmployee', async (req, res) => {
+  const { employeeId, name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
+
+  try {
+    
+    // Update employee details
+    const updateEmployeeQuery = `
+      UPDATE employees
+      SET name = $1, phone = $2, email = $3, password = $4, cmnd = $5, birth_date = $6, address = $7
+      WHERE id = $8;
+    `;
+    const employeeValues = [name, phone, email, password, idNumber, dob, address, employeeId];
+    await client.query(updateEmployeeQuery, employeeValues);
+    
+    // Update or insert salary for the employee
+    const upsertSalaryQuery = `
+      INSERT INTO salaries (employee_id, type, salaries)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (employee_id)
+      DO UPDATE SET type = EXCLUDED.type, salaries = EXCLUDED.salaries;
+    `;
+    const salaryValues = [employeeId, paymentType, amount];
+    await client.query(upsertSalaryQuery, salaryValues);
+    
+    res.status(200).json({ message: 'Employee and salary updated successfully' });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+
+app.get('/accountInformation', async (req, res) => {
+  const { employeeId } = req.body;
+
+  try {
+    // Query to get employee information excluding id and password
+    const query = `
+      SELECT name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
+      FROM employees
+      WHERE id = $1;
+    `;
+    const result = await client.query(query, [employeeId]);
+
+    // Check if employee exists
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
 });
 
 
@@ -182,41 +385,3 @@ app.listen(PORT, () => {
 
 
 
-// // Transform data into desired structure
-    // const formattedResults = [];
-    // let currentEmployee = null;
-
-    // result.rows.forEach(row => {
-    //   if (!currentEmployee || currentEmployee.id !== row.id) {
-    //     if (currentEmployee) {
-    //       formattedResults.push({
-    //         id: currentEmployee.id,
-    //         name: currentEmployee.name,
-    //         attendance: currentEmployee.attendance,
-    //       });
-    //     }
-
-    //     currentEmployee = {
-    //       id: row.id,
-    //       name: row.name,
-    //       attendance: [],
-    //     };
-    //   }
-
-    //   currentEmployee.attendance.push({
-    //     date: row.attendance_date,
-    //     status: row.attendance_status,
-    //     color: row.attendance_color,
-    //   });
-    // });
-
-    // // Push the last employee to the formattedResults array
-    // if (currentEmployee) {
-    //   formattedResults.push({
-    //     id: currentEmployee.id,
-    //     name: currentEmployee.name,
-    //     attendance: currentEmployee.attendance,
-    //   });
-    // }
-
-    // res.json(formattedResults);
