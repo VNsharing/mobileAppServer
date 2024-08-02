@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { client, connectDB } = require('./db');
+const bodyParser = require('body-parser');
 
 
 const app = express();
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(cors()); // Enable CORS if needed
+app.use(bodyParser.json());
 
 // Import database connection
 connectDB();
@@ -52,23 +54,6 @@ app.get('/dailyChecker', async (req, res) => {
 });
 
 
-app.get('/testAPI', async (req, res) => {
-  try {
-    const query = `
-      SELECT * FROM employees
-    `;
-    console.log('Received request for /testAPI');
-    const result = await client.query(query);
-    console.log('Query result:', result.rows);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
 app.get('/employeeTab', async (req, res) => {
   try {
     const query = `
@@ -77,6 +62,7 @@ app.get('/employeeTab', async (req, res) => {
       JOIN salaries s ON e.id = s.employee_id
     `;
     const result = await client.query(query);
+    res.json(result.rows);
     
   } catch (err) {
     console.error('Error executing query', err);
@@ -93,31 +79,15 @@ app.patch('/updatePassword', async (req, res) => {
   }
 
   try {
-    const query = 'UPDATE employee SET password = $1 WHERE id = $2 RETURNING *';
+    const query = 'UPDATE employees SET password = $1 WHERE id = $2 RETURNING *';
     const values = [newPassword, employeeId];
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
     res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-app.post('/addEmployees', async (req, res) => {
-
-
-  try {
-    const query = `
-      
-    `;
-    const result = await client.query(query);
-    
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -194,9 +164,9 @@ app.post('/login', async (req, res) => {
   }
 
   try {
-    const query = 'SELECT * FROM employee WHERE email = $1 AND password = $2';
+    const query = 'SELECT * FROM employees WHERE email = $1 AND password = $2';
     const values = [email, password];
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -212,12 +182,12 @@ app.post('/login', async (req, res) => {
 
 
 app.patch('/banEmployee', async (req, res) => {
-  const employeeId = req.body;
+  const { employeeId } = req.body;
 
   try {
-    const query = 'UPDATE employee SET status = $1 WHERE id = $2 RETURNING *';
+    const query = 'UPDATE employees SET status = $1 WHERE id = $2 RETURNING *';
     const values = ['Banned', employeeId];
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
@@ -232,38 +202,18 @@ app.patch('/banEmployee', async (req, res) => {
 
 
 app.patch('/unbanEmployee', async (req, res) => {
-  const employeeId = req.body;
+  const { employeeId } = req.body;
 
   try {
-    const query = 'UPDATE employee SET status = $1 WHERE id = $2 RETURNING *';
+    const query = 'UPDATE employees SET status = $1 WHERE id = $2 RETURNING *';
     const values = ['Active', employeeId];
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
     res.status(200).json({ message: 'Employee status updated to Active', employee: result.rows[0] });
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-app.delete('/deleteEmployee', async (req, res) => {
-  const employeeId = req.body;
-
-  try {
-    const query = 'DELETE FROM employee WHERE id = $1 RETURNING *';
-    const values = [employeeId];
-    const result = await pool.query(query, values);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Employee not found' });
-    }
-
-    res.status(200).json({ message: 'Employee deleted successfully', deletedEmployee: result.rows[0] });
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -341,7 +291,7 @@ app.get('/accountInformation', async (req, res) => {
   try {
     // Query to get employee information excluding id and password
     const query = `
-      SELECT name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
+      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
       FROM employees
       WHERE id = $1;
     `;
@@ -353,6 +303,7 @@ app.get('/accountInformation', async (req, res) => {
     }
 
     res.status(200).json(result.rows[0]);
+
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -370,6 +321,44 @@ app.listen(PORT, () => {
 
 
 
+
+// app.get('/testAPI', async (req, res) => {
+//   try {
+//     const query = `
+//       SELECT * FROM employees
+//     `;
+//     console.log('Received request for /testAPI');
+//     const result = await client.query(query);
+//     console.log('Query result:', result.rows);
+
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error('Error executing query', err);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
+
+
+
+
+// app.delete('/deleteEmployee', async (req, res) => {
+//   const employeeId = req.body;
+
+//   try {
+//     const query = 'DELETE FROM employees WHERE id = $1 RETURNING *';
+//     const values = [employeeId];
+//     const result = await client.query(query, values);
+
+//     if (result.rowCount === 0) {
+//       return res.status(404).json({ error: 'Employee not found' });
+//     }
+
+//     res.status(200).json({ message: 'Employee deleted successfully', deletedEmployee: result.rows[0] });
+//   } catch (err) {
+//     console.error('Error executing query', err);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
 
 
 
