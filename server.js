@@ -291,7 +291,7 @@ app.get('/accountInformation', async (req, res) => {
   try {
     // Query to get employee information excluding id and password
     const query = `
-      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
+      SELECT id, name, phone, email, password, cmnd AS idNumber, birth_date AS dob, address, role, status
       FROM employees
       WHERE id = $1;
     `;
