@@ -17,7 +17,7 @@ connectDB();
 
 // Define API routes
 
-//get data for dailychecker
+//get data for dailychecker (daily checker)
 app.get('/dailyChecker', async (req, res) => {
   try {
     const query = `
@@ -55,24 +55,8 @@ app.get('/dailyChecker', async (req, res) => {
   }
 });
 
-//get data for employee tab
-app.get('/employeeTab', async (req, res) => {
-  try {
-    const query = `
-      SELECT e.name, s.salaries
-      FROM employees e
-      JOIN salaries s ON e.id = s.employee_id
-    `;
-    const result = await client.query(query);
-    res.json(result.rows);
-    
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
-//update employee password
+//update employee password (account)
 app.patch('/updatePassword', async (req, res) => {
   const { employeeId, newPassword } = req.body;
 
@@ -96,7 +80,7 @@ app.patch('/updatePassword', async (req, res) => {
   }
 });
 
-//get attendance data
+//get attendance data (schedule screen)
 app.get('/formattedAttendance', async (req, res) => {
   try {
     const query = `
@@ -132,7 +116,7 @@ app.get('/formattedAttendance', async (req, res) => {
   }
 });
 
-//update attendance for an employee
+//update attendance for an employee (schedule screen)
 app.post('/updateAttendance', async (req, res) => {
   const { employeeId, date, status, color} = req.body;
 
@@ -182,7 +166,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-//ban an employee
+//ban an employee (employee tab)
 app.patch('/banEmployee', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -202,7 +186,7 @@ app.patch('/banEmployee', async (req, res) => {
   }
 });
 
-//unban an employee
+//unban an employee (employee tab)
 app.patch('/unbanEmployee', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -222,7 +206,7 @@ app.patch('/unbanEmployee', async (req, res) => {
   }
 });
 
-//add a new employee
+//add a new employee (emloyee tab)
 app.post('/addEmployee', async (req, res) => {
   const { name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
 
@@ -254,7 +238,7 @@ app.post('/addEmployee', async (req, res) => {
   } 
 });
 
-//update employee information
+//update employee information (Employee tab)
 app.patch('/editEmployee', async (req, res) => {
   const { employeeId, name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
 
@@ -286,7 +270,7 @@ app.patch('/editEmployee', async (req, res) => {
   } 
 });
 
-//Get account information
+//Get account information (account)
 app.get('/accountInformation', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -310,6 +294,67 @@ app.get('/accountInformation', async (req, res) => {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
+});
+
+//calculate salary for month (EmployeeTab)
+app.get('/calculateTotalSalaries', async (req, res) => {
+  try {
+    // Query to calculate total salaries for each employee for each month
+    const query = `
+      SELECT 
+        TO_CHAR(a.date, 'YYYY-MM') AS month,
+        e.id AS employee_id,
+        e.name,
+        s.salaries AS daily_salary,
+        COUNT(a.date) AS present_days,
+        COUNT(a.date) * s.salaries AS total_salary
+      FROM 
+        employees e
+      JOIN 
+        salaries s ON e.id = s.employee_id
+      JOIN 
+        attendance a ON e.id = a.employee_id
+      WHERE 
+        a.status = 'Present'
+      GROUP BY 
+        month, e.id, e.name, s.salaries;
+    `;
+
+    const result = await client.query(query);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No data found' });
+    }
+
+    // Calculate total salaries for each month
+    const monthlySalaries = result.rows.reduce((acc, row) => {
+      const { month, employee_id, name, total_salary } = row;
+      
+      if (!acc[month]) {
+        acc[month] = {
+          totalSalaryForMonth: 0,
+          employees: [],
+        };
+      }
+
+      acc[month].totalSalaryForMonth += parseFloat(total_salary);
+      acc[month].employees.push({
+        employee_id,
+        name,
+        total_salary
+      });
+
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      message: 'Total salaries for each month calculated successfully',
+      monthlySalaries,
+    });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 
