@@ -16,6 +16,8 @@ app.use(bodyParser.json());
 connectDB();
 
 // Define API routes
+
+//get data for dailychecker
 app.get('/dailyChecker', async (req, res) => {
   try {
     const query = `
@@ -53,7 +55,7 @@ app.get('/dailyChecker', async (req, res) => {
   }
 });
 
-
+//get data for employee tab
 app.get('/employeeTab', async (req, res) => {
   try {
     const query = `
@@ -70,7 +72,7 @@ app.get('/employeeTab', async (req, res) => {
   }
 });
 
-
+//update employee password
 app.patch('/updatePassword', async (req, res) => {
   const { employeeId, newPassword } = req.body;
 
@@ -94,7 +96,7 @@ app.patch('/updatePassword', async (req, res) => {
   }
 });
 
-
+//get attendance data
 app.get('/formattedAttendance', async (req, res) => {
   try {
     const query = `
@@ -130,7 +132,7 @@ app.get('/formattedAttendance', async (req, res) => {
   }
 });
 
-
+//update attendance for an employee
 app.post('/updateAttendance', async (req, res) => {
   const { employeeId, date, status, color} = req.body;
 
@@ -155,7 +157,7 @@ app.post('/updateAttendance', async (req, res) => {
   }
 });
 
-
+//sample api for basic login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -180,7 +182,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
+//ban an employee
 app.patch('/banEmployee', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -200,7 +202,7 @@ app.patch('/banEmployee', async (req, res) => {
   }
 });
 
-
+//unban an employee
 app.patch('/unbanEmployee', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -220,7 +222,7 @@ app.patch('/unbanEmployee', async (req, res) => {
   }
 });
 
-
+//add a new employee
 app.post('/addEmployee', async (req, res) => {
   const { name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
 
@@ -252,7 +254,7 @@ app.post('/addEmployee', async (req, res) => {
   } 
 });
 
-
+//update employee information
 app.patch('/editEmployee', async (req, res) => {
   const { employeeId, name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
 
@@ -284,7 +286,7 @@ app.patch('/editEmployee', async (req, res) => {
   } 
 });
 
-
+//Get account information
 app.get('/accountInformation', async (req, res) => {
   const { employeeId } = req.body;
 
