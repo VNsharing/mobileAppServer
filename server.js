@@ -365,23 +365,29 @@ app.get('/calculateTotalSalaries', async (req, res) => {
   try {
     // Query to calculate total salaries for each employee for each month
     const query = `
+      WITH months AS (
+        SELECT DISTINCT TO_CHAR(date, 'YYYY-MM') AS month
+        FROM attendance
+      )
       SELECT 
-        TO_CHAR(a.date, 'YYYY-MM') AS month,
+        m.month,
         e.id AS employee_id,
         e.name,
-        s.salaries AS daily_salary,
-        COUNT(a.date) AS present_days,
-        COUNT(a.date) * s.salaries AS total_salary
+        COALESCE(s.salaries, 0) AS daily_salary,
+        COUNT(a.date) FILTER (WHERE a.status = 'Present') AS present_days,
+        COALESCE(COUNT(a.date) FILTER (WHERE a.status = 'Present') * s.salaries, 0) AS total_salary
       FROM 
+        months m
+      CROSS JOIN 
         employees e
-      JOIN 
+      LEFT JOIN 
         salaries s ON e.id = s.employee_id
-      JOIN 
-        attendance a ON e.id = a.employee_id
-      WHERE 
-        a.status = 'Present'
+      LEFT JOIN 
+        attendance a ON e.id = a.employee_id AND TO_CHAR(a.date, 'YYYY-MM') = m.month
       GROUP BY 
-        month, e.id, e.name, s.salaries;
+        m.month, e.id, e.name, s.salaries
+      ORDER BY 
+        m.month, e.id;
     `;
 
     const result = await client.query(query);
@@ -393,7 +399,7 @@ app.get('/calculateTotalSalaries', async (req, res) => {
     // Calculate total salaries for each month
     const monthlySalaries = result.rows.reduce((acc, row) => {
       const { month, employee_id, name, total_salary } = row;
-      
+
       if (!acc[month]) {
         acc[month] = {
           totalSalaryForMonth: 0,
@@ -405,7 +411,7 @@ app.get('/calculateTotalSalaries', async (req, res) => {
       acc[month].employees.push({
         employee_id,
         name,
-        total_salary
+        total_salary,
       });
 
       return acc;
