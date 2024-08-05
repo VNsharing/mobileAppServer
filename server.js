@@ -118,9 +118,13 @@ app.get('/formattedAttendance', async (req, res) => {
 
 //insert attendance for an employee (schedule screen)
 app.post('/insertAttendance', async (req, res) => {
-  const { employeeId, date, status, color } = req.body;
+  const { employee_id, date, status, color } = req.body;
 
   console.log('Request Body:', req.body);
+
+  if (!employee_id || !date || !status || !color) {
+    return res.status(400).json({ error: 'All fields (employee_id, date, status, color) are required' });
+  }
 
   try {
     const query = `
@@ -130,7 +134,7 @@ app.post('/insertAttendance', async (req, res) => {
       DO NOTHING
       RETURNING *;
     `;
-    const values = [employeeId, date, status, color];
+    const values = [employee_id, date, status, color];
     const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
@@ -147,9 +151,13 @@ app.post('/insertAttendance', async (req, res) => {
 
 //update attendance for an employee (schedule screen)
 app.patch('/updateAttendance', async (req, res) => {
-  const { employeeId, date, status, color } = req.body;
+  const { employee_id, date, status, color } = req.body;
 
   console.log('Request Body:', req.body);
+
+  if (!employee_id || !date || !status || !color) {
+    return res.status(400).json({ error: 'All fields (employee_id, date, status, color) are required' });
+  }
 
   try {
     const query = `
@@ -158,7 +166,7 @@ app.patch('/updateAttendance', async (req, res) => {
       WHERE employee_id = $3 AND date = $4
       RETURNING *;
     `;
-    const values = [status, color, employeeId, date];
+    const values = [status, color, employee_id, date];
     const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
@@ -171,6 +179,7 @@ app.patch('/updateAttendance', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 //sample api for basic login
