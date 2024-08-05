@@ -21,31 +21,33 @@ connectDB();
 app.get('/dailyChecker', async (req, res) => {
   try {
     const query = `
-      SELECT e.id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
+      SELECT e.id AS employee_id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
       FROM employees e
       LEFT JOIN attendance a ON e.id = a.employee_id
       ORDER BY e.id, a.date
     `;
     const result = await client.query(query);
 
-    // Process the results to format them as required
-    const formattedData = result.rows.reduce((acc, row) => {
+    // Using a Map to group employees
+    const employeeMap = new Map();
+
+    result.rows.forEach(row => {
       const { employee_id, name, attendance_date, attendance_status } = row;
 
-      // Find or create the employee entry
-      let employee = acc.find(e => e.idemployee === employee_id);
-      if (!employee) {
-        employee = { idemployee: employee_id, name, attendance: [] };
-        acc.push(employee);
+      if (!employeeMap.has(employee_id)) {
+        employeeMap.set(employee_id, { employee_id, name, attendance: [] });
       }
 
+      const employee = employeeMap.get(employee_id);
+      
       // Add the attendance record if it exists
       if (attendance_date && attendance_status) {
         employee.attendance.push({ status: attendance_status, datetime: attendance_date });
       }
+    });
 
-      return acc;
-    }, []);
+    // Convert the Map to an array
+    const formattedData = Array.from(employeeMap.values());
 
     res.json(formattedData);
 
@@ -54,6 +56,7 @@ app.get('/dailyChecker', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 //update employee password (account)
@@ -86,8 +89,8 @@ app.get('/formattedAttendance', async (req, res) => {
     const query = `
       SELECT e.id as employee_id, e.name, a.status, a.date as datetime, a.color
       FROM employees e
-      JOIN attendance a ON e.id = a.employee_id
-      ORDER BY e.id, a.date
+      LEFT JOIN attendance a ON e.id = a.employee_id
+      ORDER BY e.id, a.date;
     `;
     const result = await client.query(query);
 
@@ -107,12 +110,10 @@ app.get('/formattedAttendance', async (req, res) => {
       });
     });
 
-    const formattedResult = Object.values(employees);
-
-    res.json(formattedResult);
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.json(Object.values(employees));
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
