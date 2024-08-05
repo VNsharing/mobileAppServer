@@ -17,50 +17,6 @@ connectDB();
 
 // Define API routes
 
-//get data for dailychecker (daily checker)
-app.get('/dailyChecker', async (req, res) => {
-  try {
-    const query = `
-      SELECT e.id AS employee_id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
-      FROM employees e
-      LEFT JOIN attendance a ON e.id = a.employee_id
-      ORDER BY e.id, a.date
-    `;
-    const result = await client.query(query);
-
-    // Using a Map to group employees
-    const employeeMap = new Map();
-
-    result.rows.forEach(row => {
-      const { employee_id, name, attendance_date, attendance_status } = row;
-
-      if (!employeeMap.has(employee_id)) {
-        employeeMap.set(employee_id, { employee_id, name, attendance: [] });
-      }
-
-      const employee = employeeMap.get(employee_id);
-      
-      // Add the attendance record if it exists, otherwise, push a null attendance record
-      if (attendance_date && attendance_status) {
-        employee.attendance.push({ status: attendance_status, datetime: attendance_date });
-      }
-    });
-
-    // Convert the Map to an array and ensure each employee has at least one null attendance record if none exists
-    const formattedData = Array.from(employeeMap.values()).map(employee => {
-      if (employee.attendance.length === 0) {
-        employee.attendance.push(null);
-      }
-      return employee;
-    });
-
-    res.json(formattedData);
-
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 //get list of employees
 app.get('/getAllEmployees', async (req, res) => {
@@ -478,7 +434,50 @@ app.listen(PORT, () => {
 // });
 
 
+//get data for dailychecker (daily checker)
+// app.get('/dailyChecker', async (req, res) => {
+//   try {
+//     const query = `
+//       SELECT e.id AS employee_id, e.name, a.date AS attendance_date, a.status AS attendance_status, a.color AS attendance_color
+//       FROM employees e
+//       LEFT JOIN attendance a ON e.id = a.employee_id
+//       ORDER BY e.id, a.date
+//     `;
+//     const result = await client.query(query);
 
+//     // Using a Map to group employees
+//     const employeeMap = new Map();
+
+//     result.rows.forEach(row => {
+//       const { employee_id, name, attendance_date, attendance_status } = row;
+
+//       if (!employeeMap.has(employee_id)) {
+//         employeeMap.set(employee_id, { employee_id, name, attendance: [] });
+//       }
+
+//       const employee = employeeMap.get(employee_id);
+      
+//       // Add the attendance record if it exists, otherwise, push a null attendance record
+//       if (attendance_date && attendance_status) {
+//         employee.attendance.push({ status: attendance_status, datetime: attendance_date });
+//       }
+//     });
+
+//     // Convert the Map to an array and ensure each employee has at least one null attendance record if none exists
+//     const formattedData = Array.from(employeeMap.values()).map(employee => {
+//       if (employee.attendance.length === 0) {
+//         employee.attendance.push(null);
+//       }
+//       return employee;
+//     });
+
+//     res.json(formattedData);
+
+//   } catch (err) {
+//     console.error('Error executing query', err);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
 
 
 
