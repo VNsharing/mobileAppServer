@@ -62,6 +62,22 @@ app.get('/dailyChecker', async (req, res) => {
   }
 });
 
+//get list of employees
+app.get('/getAllEmployees', async (req, res) => {
+  try {
+    const query = `
+      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
+      FROM employees
+      ORDER BY id;
+    `;
+    const result = await client.query(query);
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 
