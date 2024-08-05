@@ -116,30 +116,62 @@ app.get('/formattedAttendance', async (req, res) => {
   }
 });
 
-//update attendance for an employee (schedule screen)
-app.post('/updateAttendance', async (req, res) => {
-  const { employeeId, date, status, color} = req.body;
+//insert attendance for an employee (schedule screen)
+app.post('/insertAttendance', async (req, res) => {
+  const { employeeId, date, status, color } = req.body;
 
-  // Log the request body to check the values being received
   console.log('Request Body:', req.body);
-  
+
   try {
     const query = `
       INSERT INTO attendance (employee_id, date, status, color)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (employee_id, date)
-      DO UPDATE SET status = EXCLUDED.status, color = EXCLUDED.color
+      DO NOTHING
       RETURNING *;
     `;
     const values = [employeeId, date, status, color];
     const result = await client.query(query, values);
-    
+
+    if (result.rows.length === 0) {
+      return res.status(409).json({ error: 'Attendance record already exists' });
+    }
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+//update attendance for an employee (schedule screen)
+app.patch('/updateAttendance', async (req, res) => {
+  const { employeeId, date, status, color } = req.body;
+
+  console.log('Request Body:', req.body);
+
+  try {
+    const query = `
+      UPDATE attendance
+      SET status = $1, color = $2
+      WHERE employee_id = $3 AND date = $4
+      RETURNING *;
+    `;
+    const values = [status, color, employeeId, date];
+    const result = await client.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Attendance record not found' });
+    }
+
     res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 //sample api for basic login
 app.post('/login', async (req, res) => {
