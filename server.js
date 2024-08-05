@@ -40,14 +40,19 @@ app.get('/dailyChecker', async (req, res) => {
 
       const employee = employeeMap.get(employee_id);
       
-      // Add the attendance record if it exists
+      // Add the attendance record if it exists, otherwise, push a null attendance record
       if (attendance_date && attendance_status) {
         employee.attendance.push({ status: attendance_status, datetime: attendance_date });
       }
     });
 
-    // Convert the Map to an array
-    const formattedData = Array.from(employeeMap.values());
+    // Convert the Map to an array and ensure each employee has at least one null attendance record if none exists
+    const formattedData = Array.from(employeeMap.values()).map(employee => {
+      if (employee.attendance.length === 0) {
+        employee.attendance.push(null);
+      }
+      return employee;
+    });
 
     res.json(formattedData);
 
@@ -56,6 +61,7 @@ app.get('/dailyChecker', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
