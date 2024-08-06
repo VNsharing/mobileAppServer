@@ -178,13 +178,19 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Assuming you have some user data to return on successful login
-    res.status(200).json({ message: 'Login successful', user: result.rows[0] });
+    const user = result.rows[0];
+
+    if (user.role === 'admin') {
+      res.status(200).json({ message: 'Login successful', user });
+    } else {
+      res.status(403).json({ error: 'Wrong account. Please use an admin account to log in.' });
+    }
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 //ban an employee (employee tab)
 app.patch('/banEmployee', async (req, res) => {
