@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { client, connectDB } = require('./db');
 const bodyParser = require('body-parser');
+const moment = require('moment-timezone');
 
 
 const app = express();
@@ -383,6 +384,34 @@ app.get('/calculateTotalSalaries', async (req, res) => {
       message: 'Total salaries for each month calculated successfully',
       monthlySalaries,
     });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/checkIn', async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({ error: 'Employee ID is required' });
+  }
+
+  try {
+    const currentDate = moment().tz('Asia/Bangkok').format('YYYY-MM-DD');
+
+    const query = `
+      INSERT INTO attendance (employee_id, date, status, color)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (employee_id, date)
+      DO NOTHING
+      RETURNING *;
+    `;
+    const values = [employeeId, currentDate, 'Present', '#00FF00'];
+    const result = await client.query(query, values);
+
+    res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
