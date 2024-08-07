@@ -266,35 +266,53 @@ app.post('/addEmployee', async (req, res) => {
 });
 
 //update employee information (Employee tab)
-app.patch('/editEmployee', async (req, res) => {
-  const { employeeId, name, dob, address, idNumber, phone, email, password, paymentType, amount } = req.body;
+app.put('/updateEmployeeField', async (req, res) => {
+  const { employeeId, field, value } = req.body;
 
   try {
-    
-    // Update employee details
-    const updateEmployeeQuery = `
-      UPDATE employees
-      SET name = $1, phone = $2, email = $3, password = $4, cmnd = $5, birth_date = $6, address = $7
-      WHERE id = $8;
-    `;
-    const employeeValues = [name, phone, email, password, idNumber, dob, address, employeeId];
-    await client.query(updateEmployeeQuery, employeeValues);
-    
-    // Update or insert salary for the employee
-    const upsertSalaryQuery = `
-      INSERT INTO salaries (employee_id, type, salaries)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (employee_id)
-      DO UPDATE SET type = EXCLUDED.type, salaries = EXCLUDED.salaries;
-    `;
-    const salaryValues = [employeeId, paymentType, amount];
-    await client.query(upsertSalaryQuery, salaryValues);
-    
-    res.status(200).json({ message: 'Employee and salary updated successfully' });
+    let query = '';
+    let values = [value, employeeId];
+
+    // Check which field needs to be updated and construct the query accordingly
+    switch (field) {
+      case 'name':
+        query = 'UPDATE employees SET name = $1 WHERE id = $2';
+        break;
+      case 'dob':
+        query = 'UPDATE employees SET birth_date = $1 WHERE id = $2';
+        break;
+      case 'address':
+        query = 'UPDATE employees SET address = $1 WHERE id = $2';
+        break;
+      case 'idNumber':
+        query = 'UPDATE employees SET cmnd = $1 WHERE id = $2';
+        break;
+      case 'phone':
+        query = 'UPDATE employees SET phone = $1 WHERE id = $2';
+        break;
+      case 'email':
+        query = 'UPDATE employees SET email = $1 WHERE id = $2';
+        break;
+      case 'password':
+        query = 'UPDATE employees SET password = $1 WHERE id = $2';
+        break;
+      case 'paymentType':
+        query = 'UPDATE salaries SET type = $1 WHERE employee_id = $2';
+        break;
+      case 'amount':
+        query = 'UPDATE salaries SET salaries = $1 WHERE employee_id = $2';
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid field' });
+    }
+
+    await client.query(query, values);
+
+    res.status(200).json({ message: 'Employee field updated successfully' });
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 //Get account information (account)
