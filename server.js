@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors()); // Enable CORS if needed
 app.use(bodyParser.json());
+
 
 // Import database connection
 connectDB();
@@ -355,8 +357,8 @@ app.get('/calculateTotalSalaries', async (req, res) => {
         e.id AS employee_id,
         e.name,
         COALESCE(s.salaries, 0) AS daily_salary,
-        COUNT(a.date) FILTER (WHERE a.status = 'Present') AS present_days,
-        COALESCE(COUNT(a.date) FILTER (WHERE a.status = 'Present') * s.salaries, 0) AS total_salary
+        COUNT(a.date) FILTER (WHERE a.status = 'Attended') AS present_days,
+        COALESCE(COUNT(a.date) FILTER (WHERE a.status = 'Attended') * s.salaries, 0) AS total_salary
       FROM 
         months m
       CROSS JOIN 
