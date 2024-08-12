@@ -3,10 +3,20 @@ const cors = require('cors');
 const { client, connectDB } = require('./db');
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
-
-
+const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
+const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-d0f74b95a6.json');
 
 const app = express();
+const transporter = nodemailer.createTransport({
+  host: 'sandbox.smtp.mailtrap.io',
+  port: '465',
+  secure: false,
+  auth: {
+      user: 'f129515b4b31fe',
+      pass: 'a3041707ac4370'
+  }
+})
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -14,9 +24,12 @@ app.use(express.json());
 app.use(cors()); // Enable CORS if needed
 app.use(bodyParser.json());
 
-
 // Import database connection
 connectDB();
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Define API routes
 
@@ -410,7 +423,7 @@ app.get('/calculateTotalSalaries', async (req, res) => {
   }
 });
 
-
+//check in
 app.post('/checkIn', async (req, res) => {
   const { employeeId } = req.body;
 
@@ -428,7 +441,7 @@ app.post('/checkIn', async (req, res) => {
       DO NOTHING
       RETURNING *;
     `;
-    const values = [employeeId, currentDate, 'Present', '#00FF00'];
+    const values = [employeeId, currentDate, 'Attended', '#00FF00'];
     const result = await client.query(query, values);
 
     res.status(200).json(result.rows[0]);
@@ -437,6 +450,53 @@ app.post('/checkIn', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+app.post('/signup', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    // Create the user with Firebase Auth
+    const userRecord = await admin.auth().createUser({
+      email: email,
+      password: password,
+      emailVerified: false,
+      // Set other properties as needed
+    });
+
+    // Generate email verification link
+    const emailVerificationLink = await admin.auth().generateEmailVerificationLink(email);
+
+    // Send verification email using Nodemailer
+    await transporter.sendMail({
+      from: 'no-reply@example.com',
+      to: email,
+      subject: 'Please verify your email address',
+      text: `Click the following link to verify your email address: ${emailVerificationLink}`,
+    });
+
+    // Insert user into the employees table
+    const query = `
+      INSERT INTO employees (name, phone, email, password, cmnd, birth_date, address, role, status)
+      VALUES (NULL, NULL, $1, $2, NULL, NULL, NULL, 'admin', NULL);
+    `;
+    const values = [email, password];
+    await client.query(query, values);
+
+    res.status(200).json({
+      message: 'User signed up successfully. Verification email sent.',
+      userId: userRecord.uid
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 
 // Start server
