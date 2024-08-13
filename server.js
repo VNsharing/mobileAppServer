@@ -38,7 +38,7 @@ admin.initializeApp({
 app.get('/getAllEmployees', async (req, res) => {
   try {
     const query = `
-      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, role, status
+      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, status
       FROM employees
       ORDER BY id;
     `;
@@ -176,38 +176,6 @@ app.patch('/updateAttendance', async (req, res) => {
 });
 
 
-
-//sample api for basic login
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
-
-  try {
-    const query = 'SELECT * FROM employees WHERE email = $1 AND password = $2';
-    const values = [email, password];
-    const result = await client.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const user = result.rows[0];
-
-    if (user.role === 'admin') {
-      res.status(200).json({ message: 'Login successful', user });
-    } else {
-      res.status(403).json({ error: 'Wrong account. Please use an admin account to log in.' });
-    }
-  } catch (err) {
-    console.error('Error executing query', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
 //ban an employee (employee tab)
 app.patch('/banEmployee', async (req, res) => {
   const { employeeId } = req.body;
@@ -256,8 +224,8 @@ app.post('/addEmployee', async (req, res) => {
 
     // Insert new employee
     const insertEmployeeQuery = `
-      INSERT INTO employees (name, phone, email, password, cmnd, birth_date, address, role, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'employee', 'active')
+      INSERT INTO employees (name, phone, email, password, cmnd, birth_date, address, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
       RETURNING id;
     `;
     const employeeValues = [name, phone, email, password, idNumber, dob, address];
@@ -337,7 +305,7 @@ app.get('/accountInformation', async (req, res) => {
   try {
     // Query to get employee information excluding id and password
     const query = `
-      SELECT id, name, phone, email, password, cmnd AS idNumber, birth_date AS dob, address, role, status
+      SELECT id, name, phone, email, password, cmnd AS idNumber, birth_date AS dob, address, status
       FROM employees
       WHERE id = $1;
     `;
@@ -479,21 +447,84 @@ app.post('/signup', async (req, res) => {
       text: `Click the following link to verify your email address: ${emailVerificationLink}`,
     });
 
-    // Insert user into the employees table
-    const query = `
-      INSERT INTO employees (name, phone, email, password, cmnd, birth_date, address, role, status)
-      VALUES (NULL, NULL, $1, $2, NULL, NULL, NULL, 'admin', NULL);
-    `;
-    const values = [email, password];
-    await client.query(query, values);
-
     res.status(200).json({
       message: 'User signed up successfully. Verification email sent.',
-      userId: userRecord.uid
+      userId: userRecord.uid,
+      emailVerificationLink
     });
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/loginAdmin', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if the user exists in the local database
+    const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+
+      // Verify the password
+      if (password === user.password) {
+        return res.status(200).json({ message: 'Login successful', userId: user.uid });
+      } else {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+    }
+
+    // If user doesn't exist locally, check Firebase
+    try {
+      const firebaseUser = await admin.auth().getUserByEmail(email);
+
+      // Check if the email is verified
+      if (firebaseUser.emailVerified) {
+        // Add the user to the local database
+        const insertResult = await client.query(
+          'INSERT INTO users (email, password, uid) VALUES ($1, $2, $3) RETURNING uid',
+          [email, password, firebaseUser.uid]
+        );
+        return res.status(200).json({ message: 'Email verified. Please login again' }); //return to login page not home page
+      } else {
+        return res.status(401).json({ message: 'Email not verified' });
+      }
+    } catch (error) {
+      // If the user doesn't exist in Firebase, return an error
+      return res.status(404).json({ message: 'Account does not exist' });
+    }
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+app.post('/loginEmployee', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if the user exists in the local database
+    const result = await client.query('SELECT * FROM employees WHERE email = $1', [email]);
+
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+
+      // Verify the password
+      if (password === user.password) {
+        return res.status(200).json({ message: 'Login successful', userId: user.uid });
+      } else {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+    } else {
+      return res.status(404).json({ message: 'Account does not exist' });
+    }
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -503,10 +534,6 @@ app.post('/signup', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-//npmm install , node sever.js 
-
-
-
 
 
 
