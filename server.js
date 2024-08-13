@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
-const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-d0f74b95a6.json');
+// const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-d0f74b95a6.json');       uncomment this code
 
 const app = express();
 const transporter = nodemailer.createTransport({
