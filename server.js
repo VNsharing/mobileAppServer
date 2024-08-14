@@ -5,8 +5,7 @@ const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
-const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-f1f9beb5da.json'); 
-// const serviceAccountKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);      
+const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-f1f9beb5da.json');       
 
 const app = express();
 const transporter = nodemailer.createTransport({
@@ -523,7 +522,7 @@ app.post('/loginAdmin', async (req, res) => {
       if (firebaseUser.emailVerified) {
         // Add the user to the local database
         const insertResult = await client.query(
-          'INSERT INTO users (email, password, uid) VALUES ($1, $2, $3) RETURNING uid',
+          'INSERT INTO users (email, password, uid) VALUES ($1, $2, $3) RETURNING id',
           [email, password, firebaseUser.uid]
         );
         return res.status(200).json({ message: 'Email verified. Please login again' }); //return to login page not home page
