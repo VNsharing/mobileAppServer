@@ -39,11 +39,25 @@ app.get('/getAllEmployees', async (req, res) => {
   try {
     const { admin_id } = req.query;
 
+    // Log admin_id vào console
+    console.log('Received admin_id:', admin_id);
+
     const query = `
-      SELECT id, name, phone, email, cmnd AS idNumber, birth_date AS dob, address, status
-      FROM employees
-      WHERE admin_id = $1
-      ORDER BY id;
+      SELECT 
+        e.id, 
+        e.name, 
+        e.phone, 
+        e.email, 
+        e.cmnd AS idNumber, 
+        e.birth_date AS dob, 
+        e.address, 
+        e.status, 
+        e.password,
+        s.salaries AS amount
+      FROM employees e
+      JOIN salaries s ON e.id = s.employee_id
+      WHERE e.admin_id = $1
+      ORDER BY e.id;
     `;
     const result = await client.query(query, [admin_id]);
 
@@ -53,6 +67,7 @@ app.get('/getAllEmployees', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
