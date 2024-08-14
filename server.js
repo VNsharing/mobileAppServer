@@ -471,7 +471,7 @@ app.post('/loginAdmin', async (req, res) => {
 
       // Verify the password
       if (password === user.password) {
-        return res.status(200).json({ message: 'Login successful', userId: user.uid });
+        return res.status(200).json({ message: 'Login successful', userId: user.id });
       } else {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
@@ -515,7 +515,7 @@ app.post('/loginEmployee', async (req, res) => {
 
       // Verify the password
       if (password === user.password) {
-        return res.status(200).json({ message: 'Login successful', userId: user.uid });
+        return res.status(200).json({ message: 'Login successful', userId: user.id });
       } else {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
