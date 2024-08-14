@@ -485,7 +485,7 @@ app.post('/loginAdmin', async (req, res) => {
       if (firebaseUser.emailVerified) {
         // Add the user to the local database
         const insertResult = await client.query(
-          'INSERT INTO users (email, password, uid) VALUES ($1, $2, $3) RETURNING uid',
+          'INSERT INTO users (email, password, uid) VALUES ($1, $2, $3) RETURNING id',
           [email, password, firebaseUser.uid]
         );
         return res.status(200).json({ message: 'Email verified. Please login again' }); //return to login page not home page
