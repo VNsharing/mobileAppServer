@@ -228,6 +228,11 @@ app.patch('/updateAttendance', async (req, res) => {
 app.patch('/banEmployee', async (req, res) => {
   const { employee_id } = req.body;
 
+  // Validate employee_id
+  if (!employee_id) {
+    return res.status(400).json({ error: 'Employee ID is required' });
+  }
+
   try {
     const query = 'UPDATE employees SET status = $1 WHERE id = $2 RETURNING *';
     const values = ['Banned', employee_id];
@@ -237,6 +242,7 @@ app.patch('/banEmployee', async (req, res) => {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
+    console.log(`Employee ${employee_id} status updated to Banned`);
     res.status(200).json({ message: 'Employee status updated to Banned', employee: result.rows[0] });
   } catch (err) {
     console.error('Error executing query', err);
@@ -244,9 +250,13 @@ app.patch('/banEmployee', async (req, res) => {
   }
 });
 
-//unban an employee (employee tab)
 app.patch('/unbanEmployee', async (req, res) => {
   const { employee_id } = req.body;
+
+  // Validate employee_id
+  if (!employee_id) {
+    return res.status(400).json({ error: 'Employee ID is required' });
+  }
 
   try {
     const query = 'UPDATE employees SET status = $1 WHERE id = $2 RETURNING *';
@@ -257,13 +267,13 @@ app.patch('/unbanEmployee', async (req, res) => {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
+    console.log(`Employee ${employee_id} status updated to Active`);
     res.status(200).json({ message: 'Employee status updated to Active', employee: result.rows[0] });
   } catch (err) {
     console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 //add a new employee (emloyee tab)                                                 
 app.post('/addEmployee', async (req, res) => {
   const { name, dob, address, idNumber, phone, email, password, paymentType, amount, admin_id } = req.body;
