@@ -4,8 +4,7 @@ const { client, connectDB } = require('./db');
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');
-const serviceAccount = require('./fffffff-16c7b-firebase-adminsdk-2llbf-f1f9beb5da.json');       
+const nodemailer = require('nodemailer');    
 
 const app = express();
 const transporter = nodemailer.createTransport({
@@ -17,6 +16,22 @@ const transporter = nodemailer.createTransport({
       pass: 'a3041707ac4370'
   }
 })
+
+const serviceAccount = {
+  "type": "service_account",
+  "project_id": "fffffff-16c7b",
+  "private_key_id": "b500a370dbcc40bd58ba1f1528ba25e4d1301ff9",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDD3UnehsczvOgC\nXo/f2xH6g+9hD3AucUoG1H/M9ycizh6NQshJO9uB6PKJp7Lj8DqdLY7nQNV/R/tk\nfBpGZTQziWHhTvGFnQc2j8xFgZmHGbuZlt8nqpYHtaUtpA4MYem8q54S+JPCtaN2\nqG4/GM58wKmZr7yHONpRqR9Mym47NKadN/yAHsj1WiIPtVdENmj3odrzR6S+qtiY\nQybUdV+UWkn8xpMZ3HTv1+K3Zz3d7QNBUSdnCvENRp/51wzwPqQC27/gHCXIgnl1\n2P5QBS4chnhJMUzyc9qv2ZUmF4SkC65MZrjJSTB8yUWNr9mnK2xrEJPM8RBAExYf\nnNU+WaI7AgMBAAECggEAKIDL5E0Jx5yye77zUK78RkpfR7qKD8iUrtnlvcyEVtG6\nBqs/QMm0iGZUNXws5a8JZ/SCXzcMj2Aiz/JL+q+1/kxUJeQN1PwWgEV3UA5PYd1D\n6qyE5C6GDP0Wtdv9nbjnvYDd1P17jOHD9mc5OSoXlTvANsxdF7d9ijKHivk3l11c\nrA27jkdAhuoxfWIR7k3rsE6W7+qBf7ptDoQ6N8MhNe4RMmtag3dtkrNzpX96xiOq\n4BCUjzvNe2cEnRcgJUqjDbPxjQhab/DVBAOolHFQd5VixcE9BTQ09iK17fOwKlaP\nN8+Ds9e3fRNSqWXb1utgWvYTcfhlkoHMARCHegTGCQKBgQDtYLBMZ92JWDThBEMf\niJaVRHgXB/C7afn5YBACRTMDECkWkCFZdVKtw01mB6wdwS8zIomcJexVINcXBaaS\nQU+a7B4ZUJA9B5kVmZuEKhLAKbKry8RNn8i+9k+dDW92Ng8cXByoE7NN+PPNgZSp\nZ6WaEk/ZCkqJQGfKtDunldHTowKBgQDTOuEGEfMMtBeUcyrUDiycTVWCP/TDYJyR\n3juvligiQpCXKUZpGyMVoQ0LdErx6m4srxFaM6w/eXb3urQ/ecrO8MXhtEdqmplC\n+gG36j1ApN0axluh+NqcvjhkwU8mlFGP9Sr5D/a+cwtuiEHQIhHmqljsjV2+ymmi\nbVfuYKkgiQKBgQDAvVpIn6kspLdC4XATAZerGY4cvTDFK7ZxuoMlJMTXvt5t2JeL\niIyaVFLa/m3NNxe5AFkVtWEgeerLYaYvaOJXG1MRIO4M78dn13KDrJnO98yAW5JH\nqO6Zx2s7TTZsmFZKo6wM+PoE3JgxC/8GUgcPg8DbrNR6fxYHa7JoT2iw2wKBgHio\nnXmWLzwGc6G8164iGqF+G2Y3ml0whr9cLsPyBiLr2yQ905aehcAJKyZr25Os0hp8\nNnFMKwxnGeoQoH3R2GO1bZOsI09l2D5GCU1BZJPUmOh+fkFboaT/k78aHVhwSNbu\nuQlkcRIBLXqKIu39SDR3Aiy949rkTMsXoq7sUC/hAoGAJxewSqyBe0OC8PQiVOLP\nwqFIMv/1slKBvtYuv73Lyb3cc/u5Y8kFph135rC6x33QrDYPmFBl7vomJ6kisx3w\nmWcNsVXtLKLVrazaRi82SQ65pRDpu9oaUDC0bbg4gUdrPC7pac1yWOfoklA299NG\n7l0f+x9g5+NOwQNl8fonccs=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-2llbf@fffffff-16c7b.iam.gserviceaccount.com",
+  "client_id": "105092209125693094839",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-2llbf%40fffffff-16c7b.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+};
+
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -677,6 +692,8 @@ app.get('/employeeAttendance', async (req, res) => {
     return res.status(500).json({ error: 'An error occurred while fetching attendance records' });
   }
 });
+
+
 
 
 
