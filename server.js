@@ -4,7 +4,8 @@ const { client, connectDB } = require('./db');
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');    
+const nodemailer = require('nodemailer');
+    
 
 const app = express();
 const transporter = nodemailer.createTransport({
@@ -694,7 +695,38 @@ app.get('/employeeAttendance', async (req, res) => {
 });
 
 
+app.post('/DailyAttendanceCheck', async (req, res) => {
+  try {
+    // Get the current date in the format YYYY-MM-DD
+    const currentDate = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
 
+    // Query to retrieve all employees' attendance for the current date
+    const attendanceQuery = `
+      SELECT e.id as employee_id, a.status, a.date
+      FROM employees e
+      LEFT JOIN attendance a ON e.id = a.employee_id AND a.date = $1;
+    `;
+
+    const attendanceResult = await client.query(attendanceQuery, [currentDate]);
+
+    // Filter employees who don't have an attendance entry for the current date
+    const absentEmployees = attendanceResult.rows.filter(row => row.date === null);
+
+    // Insert "Absent" attendance for those employees
+    for (const employee of absentEmployees) {
+      const insertQuery = `
+        INSERT INTO attendance (employee_id, status, date, color)
+        VALUES ($1, 'Absent', $2, '#FF0000');
+      `;
+      await client.query(insertQuery, [employee.employee_id, currentDate]);
+    }
+
+    res.status(200).json({ message: 'Attendance updated successfully' });
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 // Start server
